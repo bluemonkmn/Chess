@@ -768,6 +768,16 @@ namespace BenChess
                   Console.BackgroundColor = ConsoleColor.DarkGreen;
                   Console.ForegroundColor = ConsoleColor.White;
                }
+               else if ((col + row) % 2 == 0)
+               {
+                  Console.BackgroundColor = ConsoleColor.Gray;
+                  Console.ForegroundColor = ConsoleColor.Black;
+               }
+               else
+               {
+                  Console.ForegroundColor = ConsoleColor.Gray;
+                  Console.BackgroundColor = ConsoleColor.Black;
+               }
                Console.Write(GetPieceChar(this[row, col]));
                Console.ResetColor();
             }

@@ -19,7 +19,7 @@ namespace ChessTest
          Dictionary<string, List<string>> validMoves = new Dictionary<string, List<string>>();
          List<string> targetList = null;
          board.WriteToConsole();
-         while(board.GetValidMoves().Length > 0)
+         while (board.GetValidMoves().Length > 0)
          {
             foreach (ChessMove move in board.GetValidMoves())
             {
@@ -58,14 +58,13 @@ namespace ChessTest
                board = board.Move(source + "-" + target);
                board.WriteToConsole(new Coordinate(target));
             }
-            board = board.Clone();
             validMoves.Clear();
-            GC.Collect();
          }
          if (board.IsBlacksTurn)
             Console.WriteLine("Checkmate white");
          else
             Console.WriteLine("Checkmate black");
+         Console.ReadLine();
       }
 
       public static void AutoPlay()
@@ -84,6 +83,7 @@ namespace ChessTest
          }
          board.WriteToConsole(move.Target);
          Console.WriteLine("Checkmate {0}", board.IsBlacksTurn ? "White" : "Black");
+         Console.ReadLine();
       }
    }
 }
