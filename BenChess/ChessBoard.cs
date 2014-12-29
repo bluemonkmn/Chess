@@ -561,6 +561,8 @@ namespace BenChess
 
       public ChessMove[] GetValidMoves()
       {
+         if (moveResults != null)
+            return moveResults.Keys.Select((m => new ChessMove(m))).ToArray();
          List<ChessMove> candidates = new List<ChessMove>();
          for (int row = 0; row < 8; row++)
             for (int col = 0; col < 8; col++)
@@ -571,8 +573,8 @@ namespace BenChess
                {
                   foreach (Coordinate target in GetMovesForPiece(source))
                   {
-                     if (((this[source] == ChessPiece.Pawn) && (target.row == 7))
-                        || ((this[source] == ChessPiece.BlackPawn) && (target.row == 0)))
+                     if (((this[source] == ChessPiece.Pawn) && (target.row == 0))
+                        || ((this[source] == ChessPiece.BlackPawn) && (target.row == 7)))
                      {
                         foreach (ChessPiece promotion in new ChessPiece[] { ChessPiece.Rook, ChessPiece.Knight, ChessPiece.Bishop, ChessPiece.Queen })
                            candidates.Add(new ChessMove(source, target, promotion));
@@ -739,6 +741,41 @@ namespace BenChess
          if (!moveResults.TryGetValue(move, out moveResult))
             throw new ArgumentException(string.Format("{0} is not a valid move.", move));
          return moveResults[move].BoardValue;
+      }
+
+      public void WriteToConsole(Coordinate highlight)
+      {
+         WriteToConsole(highlight, true);
+      }
+      
+      public void WriteToConsole()
+      {
+         WriteToConsole(new Coordinate(), false);
+      }
+
+      private void WriteToConsole(Coordinate highlight, bool doHighlight)
+      {
+         Console.ForegroundColor = ConsoleColor.Yellow;
+         Console.WriteLine("  abcdefgh");
+         for (int row = 0; row < 8; row++)
+         {
+            Console.Write("{0} ", "87654321"[row]);
+            Console.ResetColor();
+            for (int col = 0; col < 8; col++)
+            {
+               if (doHighlight && (highlight.row == row) && (highlight.col == col))
+               {
+                  Console.BackgroundColor = ConsoleColor.DarkGreen;
+                  Console.ForegroundColor = ConsoleColor.White;
+               }
+               Console.Write(GetPieceChar(this[row, col]));
+               Console.ResetColor();
+            }
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine(" {0}", "87654321"[row]);
+         }
+         Console.WriteLine("  abcdefgh");
+         Console.ResetColor();
       }
    }
 }
