@@ -41,3 +41,9 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Manually added for this project
+bin/
+obj/
+*.user
+*.suo
