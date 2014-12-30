@@ -11,21 +11,21 @@ namespace BenChess
       ChessMove move;
       ChessBoard resultingState;
       int depth;
-      int bestValue;
+      int leafValue; // What value will this move finally end up at?
 
-      public EvaluatedMove(EvaluatedMove priorState, ChessMove move, ChessBoard resultingState)
+      public EvaluatedMove(EvaluatedMove priorState, ChessMove move, ChessBoard resultingState, bool isLeaf = false)
       {
          this.priorState = priorState;
          this.move = move;
          this.resultingState = resultingState;
-         bestValue = resultingState.BoardValue;
          if (priorState != null)
          {
             this.depth = priorState.depth + 1;
-            PropagateBestValue();
          }
          else
             this.depth = 0;
+         if (isLeaf)
+            leafValue = resultingState.BoardValue;
       }
 
       public EvaluatedMove PriorState
@@ -60,29 +60,16 @@ namespace BenChess
          }
       }
 
-      public int BestValue
+      public int LeafValue
       {
          get
          {
-            return bestValue;
+            return leafValue;
          }
-      }
-
-      private void PropagateBestValue()
-      {
-         if (priorState == null)
-            return;
-         if (priorState.resultingState.IsBlacksTurn)
+         set
          {
-            if (bestValue < priorState.bestValue)
-               priorState.bestValue = bestValue;
+            leafValue = value;
          }
-         else
-         {
-            if (bestValue > priorState.bestValue)
-               priorState.bestValue = bestValue;
-         }
-         priorState.PropagateBestValue();
       }
    }
 }

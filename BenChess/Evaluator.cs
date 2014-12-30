@@ -32,17 +32,21 @@ namespace BenChess
             foreach (ChessMove m in board.GetValidMoves())
             {
                if (board.EvaluateMove(m.ToString()) == bestMove)
-                  result.Add(new EvaluatedMove(priorState, m, board.Move(m.ToString())));
+               {
+                  result.Add(new EvaluatedMove(priorState, m, board.Move(m.ToString()), true));
+               }
             }
          }
          else
          {
-            int bestMove = int.MinValue;
-
             foreach (ChessMove m in board.GetValidMoves())
             {
                EvaluatedMove thisMove = new EvaluatedMove(priorState, m, board.Move(m.ToString()));
-               EvaluateMoves(thisMove);
+               int leafValue = EvaluateMoves(thisMove)[0].LeafValue; // Only equal/best values are returned; just pick 1
+               if (board.IsBlacksTurn)
+               {
+                  if (leafValue < priorState.le
+               }
                result.Add(thisMove);
                if (bestMove == int.MinValue)
                   bestMove = thisMove.BestValue;
