@@ -7,33 +7,16 @@ namespace BenChess
 {
    class EvaluatedMove
    {
-      EvaluatedMove priorState;
       ChessMove move;
       ChessBoard resultingState;
-      int depth;
-      int leafValue; // What value will this move finally end up at?
+      public EvaluatedMoves Previous { get; private set; }
+      public EvaluatedMoves Next { get; set; }
 
-      public EvaluatedMove(EvaluatedMove priorState, ChessMove move, ChessBoard resultingState, bool isLeaf = false)
+      public EvaluatedMove(ChessMove move, ChessBoard resultingState, EvaluatedMoves predecessor = null)
       {
-         this.priorState = priorState;
          this.move = move;
          this.resultingState = resultingState;
-         if (priorState != null)
-         {
-            this.depth = priorState.depth + 1;
-         }
-         else
-            this.depth = 0;
-         if (isLeaf)
-            leafValue = resultingState.BoardValue;
-      }
-
-      public EvaluatedMove PriorState
-      {
-         get
-         {
-            return priorState;
-         }
+         this.Previous = predecessor;
       }
 
       public ChessMove Move
@@ -52,23 +35,14 @@ namespace BenChess
          }
       }
 
-      public int Depth
+      public int FinalValue
       {
          get
          {
-            return depth;
-         }
-      }
-
-      public int LeafValue
-      {
-         get
-         {
-            return leafValue;
-         }
-         set
-         {
-            leafValue = value;
+            if (Next == null)
+               return resultingState.BoardValue;
+            else
+               return Next.FinalBestValue;
          }
       }
    }

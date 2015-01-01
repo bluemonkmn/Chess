@@ -7,67 +7,47 @@ namespace BenChess
 {
    public class Evaluator
    {
-      private int maxDepth;
       private static Random random;
 
       public static ChessMove GetBestMove(ChessBoard board, int depth)
       {
-         Evaluator e = new Evaluator() { maxDepth = depth };
-         EvaluatedMove em = new EvaluatedMove(null, null, board);
-         EvaluatedMove[] moves = e.EvaluateMoves(em);
-         if (moves.Length == 0)
+         Evaluator e = new Evaluator();
+         EvaluatedMoves moves = e.EvaluateMoves(board, depth);
+         if (moves == null)
             return null;
+         moves.PopulateFinalBestMoveValues();
+         IEnumerable<EvaluatedMove> bestOrder = moves.Where(m => m.FinalValue == moves.FinalBestValue);
+         if (board.IsBlacksTurn)
+            bestOrder = bestOrder.OrderBy(m=>m.ResultingState.BoardValue);
+         else
+            bestOrder = bestOrder.OrderByDescending(m=>m.ResultingState.BoardValue);
+         EvaluatedMove[] best = ((IOrderedEnumerable<EvaluatedMove>)bestOrder).ThenBy(m=>board[m.Move.Source]).ToArray();
          if (random == null) random = new Random();
-         int moveIndex = random.Next(moves.Length);
-         return moves[moveIndex].Move;
+         int moveIndex = -1;
+         for (int i = 1; i < best.Length; i++ )
+         {
+            if ((best[i].ResultingState.BoardValue != best[i - 1].ResultingState.BoardValue) ||
+               (board[best[i].Move.Source] != board[best[i - 1].Move.Source]))
+            {
+               moveIndex = random.Next(i);
+               break;
+            }
+         }
+         if (moveIndex < 0)
+            moveIndex = random.Next(best.Length);
+         return best[moveIndex].Move;
       }
 
-      private EvaluatedMove[] EvaluateMoves(EvaluatedMove priorState)
+      private EvaluatedMoves EvaluateMoves(ChessBoard board, int depth)
       {
-         List<EvaluatedMove> result = new List<EvaluatedMove>();
-         ChessBoard board = priorState.ResultingState;
-         if (priorState.Depth >= maxDepth - 1)
-         {
-            int bestMove = board.GetBestMoveValue();
-            foreach (ChessMove m in board.GetValidMoves())
-            {
-               if (board.EvaluateMove(m.ToString()) == bestMove)
-               {
-                  result.Add(new EvaluatedMove(priorState, m, board.Move(m.ToString()), true));
-               }
-            }
-         }
-         else
-         {
-            foreach (ChessMove m in board.GetValidMoves())
-            {
-               EvaluatedMove thisMove = new EvaluatedMove(priorState, m, board.Move(m.ToString()));
-               int leafValue = EvaluateMoves(thisMove)[0].LeafValue; // Only equal/best values are returned; just pick 1
-               if (board.IsBlacksTurn)
-               {
-                  if (leafValue < priorState.le
-               }
-               result.Add(thisMove);
-               if (bestMove == int.MinValue)
-                  bestMove = thisMove.BestValue;
-               else if (board.IsBlacksTurn)
-               {
-                  if (thisMove.BestValue < bestMove)
-                     bestMove = thisMove.BestValue;
-               }
-               else
-               {
-                  if (thisMove.BestValue > bestMove)
-                     bestMove = thisMove.BestValue;
-               }
-            }
-            foreach (EvaluatedMove m in result.ToArray())
-            {
-               if (m.BestValue != bestMove)
-                  result.Remove(m);
-            }
-         }
-         return result.ToArray();
+         if (depth == 0)
+            return null;
+         EvaluatedMoves moves = new EvaluatedMoves(board);
+         if (moves.Length == 0)
+            return null;
+         foreach (EvaluatedMove move in moves)
+            move.Next = EvaluateMoves(move.ResultingState, depth - 1);
+         return moves;
       }
    }
 }

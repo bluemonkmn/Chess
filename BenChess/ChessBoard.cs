@@ -620,6 +620,15 @@ namespace BenChess
          {
             if (value == short.MinValue)
             {
+               // Check for checkmate first, if possible
+               if ((moveResults != null) && (moveResults.Count == 0))
+               {
+                  if (IsBlacksTurn)
+                     return 9999;
+                  else
+                     return -9999;
+               }
+
                short whiteValue = 0;
                short blackValue = 0;
 
@@ -710,37 +719,6 @@ namespace BenChess
          {
             return ((flags & BoardFlags.BlacksTurn) != 0);
          }
-      }
-
-      public int GetBestMoveValue()
-      {
-         int bestMove = IsBlacksTurn ? 9999 : -9999;
-         if (moveResults == null)
-            GetValidMoves();
-         foreach (KeyValuePair<string, ChessBoard> moveResult in moveResults)
-         {
-            if (IsBlacksTurn)
-            {
-               if (moveResult.Value.BoardValue < bestMove)
-                  bestMove = moveResult.Value.BoardValue;
-            }
-            else
-            {
-               if (moveResult.Value.BoardValue > bestMove)
-                  bestMove = moveResult.Value.BoardValue;
-            }
-         }
-         return bestMove;
-      }
-
-      public int EvaluateMove(string move)
-      {
-         if (moveResults == null)
-            GetValidMoves();
-         ChessBoard moveResult;
-         if (!moveResults.TryGetValue(move, out moveResult))
-            throw new ArgumentException(string.Format("{0} is not a valid move.", move));
-         return moveResults[move].BoardValue;
       }
 
       public void WriteToConsole(Coordinate highlight)

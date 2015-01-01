@@ -45,6 +45,7 @@
     <Compile Include="ChessPiece.cs" />
     <Compile Include="Coordinate.cs" />
     <Compile Include="EvaluatedMove.cs" />
+    <Compile Include="EvaluatedMoves.cs" />
     <Compile Include="Evaluator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
