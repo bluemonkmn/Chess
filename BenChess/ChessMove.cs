@@ -117,5 +117,30 @@ namespace BenChess
          source = new Coordinate(coords[0]);
          target = new Coordinate(coords[1]);
       }
+
+      public static bool operator==(ChessMove a, ChessMove b)
+      {
+         return ((a.source.AsScalar << 16 | a.target.AsScalar) == (b.source.AsScalar << 16 | b.target.AsScalar))
+            && (a.promotion == b.promotion);
+      }
+
+      public static bool operator !=(ChessMove a, ChessMove b)
+      {
+         return ((a.source.AsScalar << 16 | a.target.AsScalar) != (b.source.AsScalar << 16 | b.target.AsScalar))
+            || (a.promotion != b.promotion);
+      }
+
+      public override bool Equals(object obj)
+      {
+         if (obj is ChessMove)
+            return this == (ChessMove)obj;
+         else
+            return false;
+      }
+
+      public override int GetHashCode()
+      {
+         return source.GetHashCode() << 16 | target.GetHashCode() ^ promotion.GetHashCode();
+      }
    }
 }

@@ -9,10 +9,13 @@ namespace BenChess
    {
       ChessMove move;
       ChessBoard resultingState;
-      public EvaluatedMoves Previous { get; private set; }
-      public EvaluatedMoves Next { get; set; }
+      public EvaluatedMove Previous { get; private set; }
+      public EvaluatedMove[] Next { get; set; }
+      public short BestNextMoveValue { get; set; }
+      public byte MateDepth { get; set; }
+      public int AccumulatedMoveValues { get; set; }
 
-      public EvaluatedMove(ChessMove move, ChessBoard resultingState, EvaluatedMoves predecessor = null)
+      public EvaluatedMove(ChessMove move, ChessBoard resultingState, EvaluatedMove predecessor = null)
       {
          this.move = move;
          this.resultingState = resultingState;
@@ -35,15 +38,16 @@ namespace BenChess
          }
       }
 
-      public int FinalValue
+      public EvaluatedMove GetRoot()
       {
-         get
-         {
-            if (Next == null)
-               return resultingState.BoardValue;
-            else
-               return Next.FinalBestValue;
-         }
+         if ((Previous == null) || (Previous.Move == null))
+            return this;
+         return Previous.GetRoot();
+      }
+
+      public override int GetHashCode()
+      {
+         return move.GetHashCode() ^ resultingState.GetHashCode();
       }
    }
 }

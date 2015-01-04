@@ -11,19 +11,19 @@ namespace BenChess
       [Flags()]
       public enum BoardFlags : short
       {
-         HasWhiteQueensRookMoved = 1,
-         HasWhiteKingsRookMoved = 2,
-         HasWhiteKingMoved = 4,
-         HasBlackQueensRookMoved = 8,
-         HasBlackKingsRookMoved = 16,
-         HasBlackKingMoved = 32,
-         WhiteInCheck = 64,
-         BlackInCheck = 128,
-         BlacksTurn = 256
+         WhiteQueenSideCastlingEnded = 1,
+         WhiteKingSideCastlingEnded = 2,
+         BlackQueenSideCastlingEnded = 4,
+         BlackKingSideCastlingEnded = 8,
+         BlacksTurn = 16,
+         WhiteInCheck = 32,
+         BlackInCheck = 64,
+         IsCheckmate = 128,
+         CheckedForCheckmate = 256
       }
 
       private ChessPiece[,] board;
-      private Dictionary<string, ChessBoard> moveResults = null;
+      private Dictionary<ChessMove, ChessBoard> moveResults = null;
       private BoardFlags flags = 0;
       // For En Passant validation, this is set to the file of
       // any pawn that advances 2 spaces in 1 move, and cleared
@@ -200,9 +200,9 @@ namespace BenChess
          return clone;
       }
 
-      private Coordinate[] GetMovesForPiece(Coordinate source)
+      private List<Coordinate> GetMovesForPiece(Coordinate source)
       {
-         List<Coordinate> candidates = new List<Coordinate>(6);
+         List<Coordinate> candidates = new List<Coordinate>(30);
          bool isBlack = PieceColorAt(source) == PieceColor.Black;
 
          switch (this[source])
@@ -317,50 +317,58 @@ namespace BenChess
             case ChessPiece.King:
             case ChessPiece.BlackKing:
                if ((source.row > 0) && (source.col > 0))
-                  AddIfTargetIsNotSelf(candidates, source.row - 1, source.col - 1, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row - 1, source.col - 1, isBlack);
                if (source.row > 0)
-                  AddIfTargetIsNotSelf(candidates, source.row - 1, source.col, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row - 1, source.col, isBlack);
                if ((source.row > 0) && (source.col < 7))
-                  AddIfTargetIsNotSelf(candidates, source.row - 1, source.col + 1, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row - 1, source.col + 1, isBlack);
                if (source.col > 0)
-                  AddIfTargetIsNotSelf(candidates, source.row, source.col - 1, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row, source.col - 1, isBlack);
                if ((source.col < 7))
-                  AddIfTargetIsNotSelf(candidates, source.row, source.col + 1, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row, source.col + 1, isBlack);
                if ((source.row < 7) && (source.col > 0))
-                  AddIfTargetIsNotSelf(candidates, source.row + 1, source.col - 1, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row + 1, source.col - 1, isBlack);
                if (source.row < 7)
-                  AddIfTargetIsNotSelf(candidates, source.row + 1, source.col, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row + 1, source.col, isBlack);
                if ((source.row < 7) && (source.col < 7))
-                  AddIfTargetIsNotSelf(candidates, source.row + 1, source.col + 1, isBlack);
+                  AddIfTargetNotUnderAttack(candidates, source.row + 1, source.col + 1, isBlack);
                if ((this[source] == ChessPiece.BlackKing) && ((flags & BoardFlags.BlackInCheck) == 0))
                {
-                  if (((flags & (BoardFlags.HasBlackKingMoved | BoardFlags.HasBlackKingsRookMoved)) == 0)
-                     && (this[7, 0] == ChessPiece.BlackRook))
+                  if (((flags & BoardFlags.BlackKingSideCastlingEnded) == 0)
+                     && (this[0, 7] == ChessPiece.BlackRook) 
+                     && !IsUnderAttack(new Coordinate(source.row, source.col + 2), PieceColor.White)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col + 1), PieceColor.White))
                   {
                      AddIfNotBlocked(candidates, source, source.row, source.col + 2, isBlack);
                   }
-                  if (((flags & (BoardFlags.HasBlackKingMoved | BoardFlags.HasBlackQueensRookMoved)) == 0)
-                     && ((this[source.row, 1] & ChessPiece.PieceMask) == 0) && (this[0, 0] == ChessPiece.BlackRook))
+                  if (((flags & BoardFlags.BlackQueenSideCastlingEnded) == 0)
+                     && ((this[source.row, 1] & ChessPiece.PieceMask) == 0) && (this[0, 0] == ChessPiece.BlackRook)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col - 2), PieceColor.White)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col - 1), PieceColor.White))
                   {
                      AddIfNotBlocked(candidates, source, source.row, source.col - 2, isBlack);
                   }
                }
                if ((this[source] == ChessPiece.King) && ((flags & BoardFlags.WhiteInCheck) == 0))
                {
-                  if (((flags & (BoardFlags.HasWhiteKingMoved | BoardFlags.HasWhiteKingsRookMoved)) == 0)
-                     && (this[7, 7] == ChessPiece.Rook))
+                  if (((flags & BoardFlags.WhiteKingSideCastlingEnded) == 0)
+                     && (this[7, 7] == ChessPiece.Rook)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col + 2), PieceColor.Black)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col + 1), PieceColor.Black))
                   {
                      AddIfNotBlocked(candidates, source, source.row, source.col + 2, isBlack);
                   }
-                  if (((flags & (BoardFlags.HasWhiteKingMoved | BoardFlags.HasWhiteQueensRookMoved)) == 0)
-                     && ((this[source.row, 1] & ChessPiece.PieceMask) == 0) && (this[0, 7] == ChessPiece.Rook))
+                  if (((flags & BoardFlags.WhiteQueenSideCastlingEnded) == 0)
+                     && ((this[source.row, 1] & ChessPiece.PieceMask) == 0) && (this[7, 0] == ChessPiece.Rook)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col - 2), PieceColor.Black)
+                     && !IsUnderAttack(new Coordinate(source.row, source.col - 1), PieceColor.Black))
                   {
                      AddIfNotBlocked(candidates, source, source.row, source.col - 2, isBlack);
                   }
                }
                break;
          }
-         return candidates.ToArray();
+         return candidates;
       }
 
       private bool AddIfNotBlocked(IList<Coordinate> moveList, Coordinate source, int targetRow, int targetCol, bool isBlack, bool mustBeEmpty = false)
@@ -385,6 +393,13 @@ namespace BenChess
          return false;
       }
 
+      private bool AddIfTargetNotUnderAttack(IList<Coordinate> moveList, int row, int col, bool isBlack)
+      {
+         if (!IsUnderAttack(new Coordinate(row, col), isBlack ? PieceColor.White : PieceColor.Black))
+            return AddIfTargetIsNotSelf(moveList, row, col, isBlack);
+         return false;
+      }
+
       private bool AddIfTargetIsOpponent(IList<Coordinate> moveList, int row, int col, bool isBlack)
       {
          Coordinate target = new Coordinate(row, col);
@@ -401,6 +416,15 @@ namespace BenChess
          None,
          White,
          Black
+      }
+
+      private PieceColor PieceColorAt(int row, int col)
+      {
+         if ((this[row, col] & ChessPiece.PieceMask) == ChessPiece.Empty)
+            return PieceColor.None;
+         if ((this[row, col] & ChessPiece.ColorMask) == ChessPiece.Black)
+            return PieceColor.Black;
+         return PieceColor.White;
       }
 
       private PieceColor PieceColorAt(Coordinate target)
@@ -440,13 +464,88 @@ namespace BenChess
          return false;
       }
 
-      public ChessBoard Move(string move)
+      private bool IsUnderAttack(Coordinate target, PieceColor byColor)
+      {
+         for (int row = 0; row < 8; row++)
+         {
+            for (int col = 0; col < 8; col++)
+            {
+               if (PieceColorAt(row, col) == byColor)
+               {
+                  switch (this[row, col])
+                  {
+                     case ChessPiece.BlackPawn:
+                        if ((target.row == row + 1) && ((target.col == col + 1) || (target.col == col - 1)))
+                           return true;
+                        break;
+                     case ChessPiece.Pawn:
+                        if ((target.row == row - 1) && ((target.col == col + 1) || (target.col == col - 1)))
+                           return true;
+                        break;
+                     case ChessPiece.Rook | ChessPiece.BlackRook:
+                        if ((target.col != col) && (target.row != row))
+                           break;
+                        if (!IsMoveBlocked(new Coordinate(row, col), target, byColor == PieceColor.Black, false))
+                           return true;
+                        break;
+                     case ChessPiece.Knight | ChessPiece.BlackKnight:
+                        if ((target.row == row - 1) && (target.col == col - 2))
+                           return true;
+                        if ((target.row == row - 2) && (target.col == col - 1))
+                           return true;
+                        if ((target.row == row + 1) && (target.col == col - 2))
+                           return true;
+                        if ((target.row == row + 2) && (target.col == col - 1))
+                           return true;
+                        if ((target.row == row + 2) && (target.col == col + 1))
+                           return true;
+                        if ((target.row == row + 1) && (target.col == col + 2))
+                           return true;
+                        if ((target.row == row - 1) && (target.col == col + 2))
+                           return true;
+                        if ((target.row == row - 2) && (target.col == col + 1))
+                           return true;
+                        break;;                        
+                     case ChessPiece.Bishop:
+                     case ChessPiece.BlackBishop:
+                        if (((target.col - target.row) != (col - row)) && ((target.col + target.row) != (col + row)))
+                           break;
+                        if (!IsMoveBlocked(new Coordinate(row, col), target, byColor == PieceColor.Black, false))
+                           return true;
+                        break;
+                     case ChessPiece.Queen:
+                     case ChessPiece.BlackQueen:
+                        if ((target.col != col) && (target.row != row) && ((target.col - target.row) != (col - row)) && ((target.col + target.row) != (col + row)))
+                           break;
+                        if (!IsMoveBlocked(new Coordinate(row, col), target, byColor == PieceColor.Black, false))
+                           return true;
+                        break;
+                     case ChessPiece.King:
+                     case ChessPiece.BlackKing:
+                        if ((target.col >= col - 1) && (target.row >= row-1) 
+                           && (target.col <= col + 1) && (target.row <= row + 1))
+                           return true;
+                        break;
+                  }
+               }
+            }
+         }
+         return false;
+      }
+
+      public ChessBoard Move(ChessMove move)
       {
          ChessBoard result;
          if (moveResults == null)
             GetValidMoves();
          if (moveResults.TryGetValue(move, out result))
          {
+            if (result == null)
+            {
+               result = Clone();
+               result.ApplyMove(move);
+            }
+            moveResults[move] = result;
             return result;
          }
          throw new ArgumentException(string.Format("{0} is not a valid move.", move));
@@ -484,38 +583,30 @@ namespace BenChess
                break;
             case ChessPiece.Rook:
                if (move.Source.col == 0)
-                  flags |= BoardFlags.HasWhiteQueensRookMoved;
-               else flags |= BoardFlags.HasWhiteKingsRookMoved;
+                  flags |= BoardFlags.WhiteQueenSideCastlingEnded;
+               else flags |= BoardFlags.WhiteKingSideCastlingEnded;
                pawnJumpCol = 99;
                break;
             case ChessPiece.BlackRook:
                if (move.Source.col == 0)
-                  flags |= BoardFlags.HasBlackQueensRookMoved;
-               else flags |= BoardFlags.HasBlackKingsRookMoved;
+                  flags |= BoardFlags.BlackQueenSideCastlingEnded;
+               else flags |= BoardFlags.BlackKingSideCastlingEnded;
                pawnJumpCol = 99;
                break;
             case ChessPiece.King:
                if (isBlack)
-                  flags |= BoardFlags.HasBlackKingMoved;
+                  flags |= BoardFlags.BlackKingSideCastlingEnded | BoardFlags.BlackQueenSideCastlingEnded;
                else
-                  flags |= BoardFlags.HasWhiteKingMoved;
+                  flags |= BoardFlags.WhiteKingSideCastlingEnded | BoardFlags.WhiteQueenSideCastlingEnded;
                if (move.Target.col - move.Source.col > 1)
                {
                   // Castling to king's rook
-                  if (isBlack)
-                     flags |= BoardFlags.HasBlackKingsRookMoved;
-                  else
-                     flags |= BoardFlags.HasWhiteKingsRookMoved;
                   board[move.Source.row, 5] = board[move.Source.row, 7];
                   board[move.Source.row, 7] = ChessPiece.Empty;
                }
                else if (move.Source.col - move.Target.col > 1)
                {
                   // Castling to queen's rook
-                  if (isBlack)
-                     flags |= BoardFlags.HasBlackQueensRookMoved;
-                  else
-                     flags |= BoardFlags.HasWhiteQueensRookMoved;
                   board[move.Source.row, 3] = board[move.Source.row, 0];
                   board[move.Source.row, 0] = ChessPiece.Empty;
                }
@@ -544,74 +635,88 @@ namespace BenChess
             for (int col = 0; col < 8; col++)
             {
                Coordinate source = new Coordinate(row, col);
-               if ((IsBlacksTurn && (PieceColorAt(source) == PieceColor.Black))
-                  || (!IsBlacksTurn && (PieceColorAt(source) == PieceColor.White)))
-               {
-                  foreach (Coordinate target in GetMovesForPiece(source))
-                     if ((this[target] & ChessPiece.PieceMask) == ChessPiece.King)
-                     {
-                        if (PieceColorAt(target) == PieceColor.Black)
-                           flags |= BoardFlags.BlackInCheck;
-                        else
-                           flags |= BoardFlags.WhiteInCheck;
-                     }
-               }
+               PieceColor sourceColor = PieceColorAt(source);
+               if ((this[row, col] == ChessPiece.King) && IsUnderAttack(new Coordinate(row, col), PieceColor.Black))
+                  flags |= BoardFlags.WhiteInCheck;
+               if ((this[row, col] == ChessPiece.BlackKing) && IsUnderAttack(new Coordinate(row, col), PieceColor.White))
+                  flags |= BoardFlags.BlackInCheck;
             }
       }
 
-      public ChessMove[] GetValidMoves()
+      public IEnumerable<ChessMove> GetValidMoves()
       {
-         if (moveResults != null)
-            return moveResults.Keys.Select((m => new ChessMove(m))).ToArray();
-         List<ChessMove> candidates = new List<ChessMove>();
-         for (int row = 0; row < 8; row++)
-            for (int col = 0; col < 8; col++)
-            {
-               Coordinate source = new Coordinate(row, col);
-               if ((IsBlacksTurn && (PieceColorAt(source) == PieceColor.Black))
-                  || (!IsBlacksTurn && (PieceColorAt(source) == PieceColor.White)))
+         if (moveResults == null)
+         {
+            moveResults = new Dictionary<ChessMove, ChessBoard>();
+            for (int row = 0; row < 8; row++)
+               for (int col = 0; col < 8; col++)
                {
-                  foreach (Coordinate target in GetMovesForPiece(source))
+                  Coordinate source = new Coordinate(row, col);
+                  if ((IsBlacksTurn && (PieceColorAt(source) == PieceColor.Black))
+                     || (!IsBlacksTurn && (PieceColorAt(source) == PieceColor.White)))
                   {
-                     if (((this[source] == ChessPiece.Pawn) && (target.row == 0))
-                        || ((this[source] == ChessPiece.BlackPawn) && (target.row == 7)))
+                     foreach (Coordinate target in GetMovesForPiece(source))
                      {
-                        foreach (ChessPiece promotion in new ChessPiece[] { ChessPiece.Rook, ChessPiece.Knight, ChessPiece.Bishop, ChessPiece.Queen })
-                           candidates.Add(new ChessMove(source, target, promotion));
-                     }
-                     else
-                     {
-                        candidates.Add(new ChessMove(source, target));
+                        if (((this[source] == ChessPiece.Pawn) && (target.row == 0))
+                           || ((this[source] == ChessPiece.BlackPawn) && (target.row == 7)))
+                        {
+                           bool bFirstPromotion = true;
+                           foreach (ChessPiece promotion in new ChessPiece[] { ChessPiece.Rook, ChessPiece.Knight, ChessPiece.Bishop, ChessPiece.Queen })
+                           {
+                              ChessBoard clone = Clone();
+                              ChessMove move = new ChessMove(source, target, promotion);
+                              clone.ApplyMove(move);
+                              if (bFirstPromotion && ((IsBlacksTurn && clone.IsBlackInCheck) || (!IsBlacksTurn && clone.IsWhiteInCheck)))
+                                 break;
+                              bFirstPromotion = false;
+                              moveResults[move] = clone;
+                           }
+                        }
+                        else
+                        {
+                           ChessBoard clone = Clone();
+                           ChessMove move = new ChessMove(source, target);
+                           clone.ApplyMove(move);
+                           if (((IsBlacksTurn && !clone.IsBlackInCheck) || (!IsBlacksTurn && !clone.IsWhiteInCheck)))                              
+                              moveResults[move] = clone;
+                        }
                      }
                   }
                }
-            }
-
-         foreach (ChessMove move in candidates.ToArray())
-         {
-            ChessBoard testMove = Clone();
-            testMove.ApplyMove(move);
-            if (moveResults == null)
-               moveResults = new Dictionary<string, ChessBoard>();
-            if (IsBlacksTurn)
-            {
-               // If this move would move black into check, eliminate it.
-               if ((testMove.flags & BoardFlags.BlackInCheck) != 0)
-                  candidates.Remove(move);
-               else
-                  moveResults[move.ToString()] = testMove;
-            }
-            else
-            {
-               // If this move would move white into check, eliminate it.
-               if ((testMove.flags & BoardFlags.WhiteInCheck) != 0)
-                  candidates.Remove(move);
-               else
-                  moveResults[move.ToString()] = testMove;
-            }
          }
+         return moveResults.Keys;
+      }
 
-         return candidates.ToArray();
+      public bool IsCheckmate
+      {
+         get
+         {
+            if ((flags & BoardFlags.CheckedForCheckmate) == 0)
+            {
+               flags |= BoardFlags.CheckedForCheckmate;
+               if (moveResults == null)
+               {
+                  for (int row = 0; row < 8; row++)
+                     for (int col = 0; col < 8; col++)
+                     {
+                        Coordinate source = new Coordinate(row, col);
+                        if ((IsBlacksTurn && (PieceColorAt(source) == PieceColor.Black))
+                           || (!IsBlacksTurn && (PieceColorAt(source) == PieceColor.White)))
+                        {
+                           if (GetMovesForPiece(source).Count > 0)
+                              return false;
+                        }
+                     }
+                  flags |= BoardFlags.IsCheckmate;
+               }
+               else
+               {
+                  if (!moveResults.Any())
+                     flags |= BoardFlags.IsCheckmate;
+               }
+            }
+            return (flags & BoardFlags.IsCheckmate) != 0;
+         }
       }
 
       public short BoardValue
@@ -620,13 +725,13 @@ namespace BenChess
          {
             if (value == short.MinValue)
             {
-               // Check for checkmate first, if possible
-               if ((moveResults != null) && (moveResults.Count == 0))
+               if (IsCheckmate)
                {
                   if (IsBlacksTurn)
-                     return 9999;
+                     value = 9999;
                   else
-                     return -9999;
+                     value = -9999;
+                  return value;
                }
 
                short whiteValue = 0;
@@ -684,6 +789,8 @@ namespace BenChess
                else
                   distance++;
             }
+         sb.Append('-');
+         sb.Append(uniqueKeyDistanceCodes[(int)flags & 31]);
          return sb.ToString();
       }
 
@@ -692,7 +799,7 @@ namespace BenChess
          int index = 0;
          int row = 0, col = 0;
          ChessBoard result = new ChessBoard();
-         while (index < key.Length)
+         while ((index < key.Length) && (key[index] != '-'))
          {
             int distance = uniqueKeyDistanceCodes.IndexOf(key[index]);
             if (distance >= 0)
@@ -702,6 +809,8 @@ namespace BenChess
                col = newCoord % 8;
                index++;
             }
+            if (row >= 8)
+               throw new ArgumentException("Invalid board code");
             result.board[row, col] = GetChessPiece(key[index++]);
             col++;
             if (col > 7)
@@ -710,6 +819,10 @@ namespace BenChess
                row++;
             }
          }
+         if (index >= key.Length - 1)
+            throw new ArgumentException("Invalid board code");
+         result.flags = (BoardFlags)uniqueKeyDistanceCodes.IndexOf(key[++index]);
+         result.CheckForCheck();
          return result;
       }
 
@@ -756,6 +869,14 @@ namespace BenChess
                   Console.ForegroundColor = ConsoleColor.Gray;
                   Console.BackgroundColor = ConsoleColor.Black;
                }
+               if ((IsBlackInCheck && (this[row, col] == ChessPiece.BlackKing))
+                  || (IsWhiteInCheck && (this[row, col] == ChessPiece.King)))
+               {
+                  if ((col + row) % 2 == 0)
+                     Console.BackgroundColor = ConsoleColor.Red;
+                  else
+                     Console.BackgroundColor = ConsoleColor.DarkRed;
+               }
                Console.Write(GetPieceChar(this[row, col]));
                Console.ResetColor();
             }
@@ -764,6 +885,22 @@ namespace BenChess
          }
          Console.WriteLine("  abcdefgh");
          Console.ResetColor();
+      }
+
+      public bool IsBlackInCheck
+      {
+         get
+         {
+            return (flags & BoardFlags.BlackInCheck) != 0;
+         }
+      }
+
+      public bool IsWhiteInCheck
+      {
+         get
+         {
+            return (flags & BoardFlags.WhiteInCheck) != 0;
+         }
       }
    }
 }

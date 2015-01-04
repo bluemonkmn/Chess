@@ -31,5 +31,28 @@ namespace BenChess
          col = (byte)colInt;
          row = (byte)rowInt;
       }
+
+      public override int GetHashCode()
+      {
+         return row << 8 | col;
+      }
+
+      public static bool operator==(Coordinate a, Coordinate b)
+      {
+         return (a.row << 8 | a.col) == (b.row << 8 | b.col);
+      }
+
+      public static bool operator !=(Coordinate a, Coordinate b)
+      {
+         return (a.row << 8 | a.col) != (b.row << 8 | b.col);
+      }
+
+      public int AsScalar
+      {
+         get
+         {
+            return row << 8 | col;
+         }
+      }
    }
 }
