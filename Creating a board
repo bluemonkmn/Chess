@@ -1,0 +1,42 @@
+    /// <summary>
+    /// This class represents a tic-tac-toe board
+    /// It is Cloneable so that we can copy board configurations when searching for a next move
+    /// </summary>
+    public class Board : ICloneable
+    {
+        public enum Pieces { X, O, Empty };
+
+        int width = 3;
+        int height = 3; 
+
+        protected int[,] board; // a two-dimensional array representing the game board
+
+        /// <summary>
+        /// Constructs an empty board
+        /// </summary>
+        public Board()
+        {
+            board = new int[ROWS, COLUMNS];
+        }
+
+        /// <summary>
+        /// Make a move on the board
+        /// </summary>
+        /// <param name="position">the board position to take</param>
+        /// <param name="piece"></param>
+        public void MakeMove(int position, Pieces piece)
+        {
+
+            if (!IsValidSquare(position))
+                throw new InvalidMoveException();
+
+            int pieceNumber = GetPieceNumber(piece);
+
+            Point point = GetPoint(position);
+
+            board[point.X, point.Y] = pieceNumber;
+        }
+             ...
+        // more code in actual source file
+
+    }
