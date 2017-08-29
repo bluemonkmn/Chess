@@ -1,0 +1,54 @@
+    /// This class represents a MAX node in the game tree.
+    /// </summary>
+    public class MaxNode : Node
+    {
+
+        /// <summary>
+        /// Constructs a new max node
+        /// </summary>
+        /// <param name="b">The Board that this node represents</param>
+        /// <param name="parent">The node's parent</param>
+        /// <param name="m">The move made to create this node's board</param>
+        public MaxNode(Board b, Node parent, TicTacToeMove m)
+            : base(b, parent, m)
+        {
+        }
+
+        // Generate Children.  MAX Nodes have MIN children
+        protected override void GenerateChildren()
+        {
+            // create child nodes for each of the availble positions 
+            int[] openPositions = board.OpenPositions;
+
+            foreach (int i in openPositions)
+            {
+                Board b = (Board) board.Clone();
+                TicTacToeMove m = new TicTacToeMove(i, myPiece);
+
+                b.MakeMove(i, myPiece);
+                children.Add(new MinNode(b, this, m));
+
+            }
+        }
+
+        // Evaluates how favorable the board configuration is for this node
+        protected override void Evaluate()
+        {
+            this.Value = evaluator.Evaluate(this.board, myPiece);
+        }
+
+        // does this node have a winning game configuration
+        protected override bool IsWinningNode()
+        {
+
+            return this.Value == double.MaxValue;
+        }
+
+        // returns a List of this nodes children sorted in descending order 
+        protected override List<Node> SortChildren(List<Node> unsortedChildren)
+        {
+            List<Node> sortedChildren = unsortedChildren.OrderByDescending(n=> n.Value).ToList();
+            return sortedChildren;
+        }
+
+    }
